@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pixel Image Generator</title>
+    <meta name="description" content="Turn your photos into tiny pixels — right in your browser. No uploads. Powered by C and WebAssembly." />
+    <link rel="stylesheet" href="style.css" />
+    <!-- Favicon: inline pixel emoji -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>" />
+</head>
+<body>
+
+    <!-- ════════════════════════════════════════════════════
+         HERO HEADER
+         ════════════════════════════════════════════════════ -->
+    <header class="hero">
+        <!-- Decorative floating pixel squares (CSS animated) -->
+        <div class="pixel-deco pixel-deco--1"></div>
+        <div class="pixel-deco pixel-deco--2"></div>
+        <div class="pixel-deco pixel-deco--3"></div>
+        <div class="pixel-deco pixel-deco--4"></div>
+        <div class="pixel-deco pixel-deco--5"></div>
+        <div class="pixel-deco pixel-deco--6"></div>
+
+        <div class="hero__inner">
+            <!-- Pixel mascot -->
+            <div class="mascot-wrapper" aria-hidden="true">
+                <img
+                    src="assets/mascot.jpg"
+                    alt="Pixel mascot — a cute pixel character holding a photo"
+                    class="mascot"
+                    width="140"
+                    height="140"
+                />
+            </div>
+
+            <h1 class="hero__title">
+                <span class="pixel-font">PIXEL</span>
+                <span class="hero__title-sub">IMAGE GENERATOR</span>
+            </h1>
+            <p class="hero__subtitle">Turn your photos into tiny pixels. ✨</p>
+
+            <!-- WASM status badge -->
+            <div class="status-badge" id="wasmStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">Loading WebAssembly...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ════════════════════════════════════════════════════
+         MAIN APPLICATION CARD
+         ════════════════════════════════════════════════════ -->
+    <main class="main-container">
+
+        <!-- ── UPLOAD SECTION ── -->
+        <section class="card upload-section" id="uploadSection" aria-label="Image upload">
+
+            <!-- Error / info banner -->
+            <div class="banner banner--error" id="errorBanner" role="alert" hidden>
+                <span class="banner__icon">⚠️</span>
+                <span class="banner__text" id="errorText"></span>
+                <button class="banner__close" onclick="hideBanner('errorBanner')" aria-label="Dismiss">✕</button>
+            </div>
+            <div class="banner banner--info" id="infoBanner" role="status" hidden>
+                <span class="banner__icon">ℹ️</span>
+                <span class="banner__text" id="infoText"></span>
+            </div>
+
+            <!-- Drop zone -->
+            <div
+                class="dropzone"
+                id="dropzone"
+                role="button"
+                tabindex="0"
+                aria-label="Drag and drop image here, or click to choose"
+                aria-describedby="dropzoneHint"
+            >
+                <div class="dropzone__illustration" aria-hidden="true">
+                    <div class="dropzone__grid">
+                        <div></div><div></div><div></div><div></div>
+                        <div></div><div></div><div></div><div></div>
+                        <div></div><div></div><div></div><div></div>
+                        <div></div><div></div><div></div><div></div>
+                    </div>
+                    <div class="dropzone__upload-icon">📷</div>
+                </div>
+                <p class="dropzone__primary">Drag &amp; Drop your image here</p>
+                <p class="dropzone__or" aria-hidden="true">— or —</p>
+                <label class="btn btn--primary" for="fileInput" role="none">
+                    Choose Image
+                </label>
+                <input
+                    type="file"
+                    id="fileInput"
+                    accept="image/png,image/jpeg,image/webp"
+                    hidden
+                    aria-label="Choose image file"
+                />
+                <p class="dropzone__hint" id="dropzoneHint">
+                    Supported formats: PNG · JPG · JPEG · WEBP
+                </p>
+            </div>
+        </section>
+
+        <!-- ── CONTROLS SECTION (shown after image load) ── -->
+        <section class="card controls-section" id="controlsSection" aria-label="Pixelation controls" hidden>
+
+            <h2 class="section-title">⚙️ Settings</h2>
+
+            <!-- Style Presets -->
+            <div class="control-group">
+                <div class="control-label">Style Preset</div>
+                <div class="chip-group" id="stylePresetGroup">
+                    <label class="chip-label">
+                        <input type="radio" name="stylePreset" value="classic" checked />
+                        <span class="chip-btn">Classic 8-bit</span>
+                    </label>
+                    <label class="chip-label">
+                        <input type="radio" name="stylePreset" value="16bit" />
+                        <span class="chip-btn">16-bit</span>
+                    </label>
+                    <label class="chip-label">
+                        <input type="radio" name="stylePreset" value="high" />
+                        <span class="chip-btn">High Detail</span>
+                    </label>
+                    <label class="chip-label">
+                        <input type="radio" name="stylePreset" value="custom" />
+                        <span class="chip-btn">Custom</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Pixel Size (Chip Group) -->
+            <div class="control-group">
+                <div class="control-label">Pixel Size</div>
+                <div class="chip-group" id="pixelSizeGroup">
+                    <label class="chip-label"><input type="radio" name="pixelSize" value="4" /><span class="chip-btn">4</span></label>
+                    <label class="chip-label"><input type="radio" name="pixelSize" value="6" /><span class="chip-btn">6</span></label>
+                    <label class="chip-label"><input type="radio" name="pixelSize" value="8" checked /><span class="chip-btn">8</span></label>
+                    <label class="chip-label"><input type="radio" name="pixelSize" value="10" /><span class="chip-btn">10</span></label>
+                    <label class="chip-label"><input type="radio" name="pixelSize" value="12" /><span class="chip-btn">12</span></label>
+                    <label class="chip-label"><input type="radio" name="pixelSize" value="16" /><span class="chip-btn">16</span></label>
+                    <label class="chip-label"><input type="radio" name="pixelSize" value="20" /><span class="chip-btn">20</span></label>
+                </div>
+            </div>
+
+            <!-- Palette Size (Chip Group) -->
+            <div class="control-group">
+                <div class="control-label">Colors (Palette Size)</div>
+                <div class="chip-group" id="paletteSizeGroup">
+                    <label class="chip-label"><input type="radio" name="paletteSize" value="8" /><span class="chip-btn">8</span></label>
+                    <label class="chip-label"><input type="radio" name="paletteSize" value="16" checked /><span class="chip-btn">16</span></label>
+                    <label class="chip-label"><input type="radio" name="paletteSize" value="32" /><span class="chip-btn">32</span></label>
+                    <label class="chip-label"><input type="radio" name="paletteSize" value="64" /><span class="chip-btn">64</span></label>
+                </div>
+            </div>
+
+            <!-- Dithering (Chip Group) -->
+            <div class="control-group">
+                <div class="control-label">Dithering</div>
+                <div class="chip-group" id="ditheringGroup">
+                    <label class="chip-label"><input type="radio" name="dithering" value="0" checked /><span class="chip-btn">None</span></label>
+                    <label class="chip-label"><input type="radio" name="dithering" value="1" /><span class="chip-btn">Bayer</span></label>
+                    <label class="chip-label"><input type="radio" name="dithering" value="2" /><span class="chip-btn">Floyd-Steinberg</span></label>
+                </div>
+            </div>
+
+            <!-- Contrast Boost Slider -->
+            <div class="control-group">
+                <label for="contrastSlider" class="control-label">
+                    Contrast Boost
+                    <span class="control-value" id="contrastDisplay">0</span>
+                </label>
+                <div class="slider-track">
+                    <span class="slider-min">0</span>
+                    <input type="range" id="contrastSlider" min="0" max="100" value="0" step="1" />
+                    <span class="slider-max">100</span>
+                </div>
+            </div>
+
+            <!-- Edge Enhancement Slider -->
+            <div class="control-group">
+                <label for="edgeSlider" class="control-label">
+                    Edge Enhancement
+                    <span class="control-value" id="edgeDisplay">0</span>
+                </label>
+                <div class="slider-track">
+                    <span class="slider-min">0</span>
+                    <input type="range" id="edgeSlider" min="0" max="100" value="0" step="1" />
+                    <span class="slider-max">100</span>
+                </div>
+            </div>
+
+            <!-- Optional: Grayscale toggle -->
+            <div class="control-group control-group--inline">
+                <label class="toggle-label" for="grayscaleToggle">
+                    <input type="checkbox" id="grayscaleToggle" />
+                    <span class="toggle-custom" aria-hidden="true"></span>
+                    Grayscale Mode
+                </label>
+                <span class="badge">Optional</span>
+            </div>
+
+            <!-- Image info chip -->
+            <div class="image-info" id="imageInfo" hidden>
+                <span class="chip" id="imageDimensions"></span>
+                <span class="chip chip--warn" id="resizeNotice" hidden>⚡ Resized for performance</span>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="action-row">
+                <button class="btn btn--accent btn--large" id="generateBtn" disabled>
+                    ✨ Generate Pixel Image
+                </button>
+                <button class="btn btn--ghost" id="resetBtn">
+                    🔄 Reset
+                </button>
+            </div>
+
+        </section>
+
+        <!-- ── RESULTS SECTION (shown after processing) ── -->
+        <section class="results-section" id="resultsSection" aria-label="Image comparison" hidden>
+
+            <h2 class="section-title results-title">
+                <span>Original</span>
+                <span class="vs-badge">VS</span>
+                <span>Pixelated</span>
+            </h2>
+
+            <div class="canvas-row">
+                <!-- Original image canvas -->
+                <div class="canvas-card">
+                    <div class="canvas-label">Original</div>
+                    <canvas id="originalCanvas" aria-label="Original uploaded image"></canvas>
+                </div>
+
+                <!-- Pixelated result canvas -->
+                <div class="canvas-card canvas-card--result">
+                    <div class="canvas-label canvas-label--pixel">Pixelated</div>
+                    <canvas id="resultCanvas" aria-label="Pixelated processed image"></canvas>
+                    <!-- Loading overlay -->
+                    <div class="canvas-loading" id="canvasLoading" hidden>
+                        <div class="spinner" aria-hidden="true"></div>
+                        <p>Processing in C…</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download button -->
+            <div class="download-row">
+                <button class="btn btn--download btn--large" id="downloadBtn" disabled>
+                    ⬇️ Download Pixel Image
+                </button>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- ════════════════════════════════════════════════════
+         FOOTER
+         ════════════════════════════════════════════════════ -->
+    <footer class="footer">
+        <p>
+            🔒 Your images never leave your browser &nbsp;·&nbsp;
+            Powered by <strong>C + WebAssembly</strong> &nbsp;·&nbsp;
+            <a href="https://github.com" target="_blank" rel="noopener">View Source</a>
+        </p>
+        <p class="footer__sub">Built for MCA students. Open source. No tracking.</p>
+    </footer>
+
+    <!-- ════════════════════════════════════════════════════
+         SCRIPTS
+         Order matters:
+           1. WASM wrapper (sets up Module config + loads WASM)
+           2. App logic   (uses pixelatorWasm singleton)
+         ════════════════════════════════════════════════════ -->
+    <script src="wasm/pixelator_wrapper.js"></script>
+    <script src="app.js"></script>
+
+</body>
+</html>
