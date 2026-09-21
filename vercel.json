@@ -1,7 +1,6 @@
 {
     "version": 2,
     "name": "pixel-image-generator",
-    "public": true,
     "headers": [
         {
             "source": "/(.*)",
